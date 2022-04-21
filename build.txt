@@ -1,0 +1,3 @@
+displayName = Chao Garden Mod
+author = FoxXD_
+version = 0.1
