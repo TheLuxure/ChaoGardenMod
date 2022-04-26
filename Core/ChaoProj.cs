@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Text.RegularExpressions;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -9,42 +10,44 @@ namespace ChaoGardenMod.Core
 	[Autoload(false)]
     public class ChaoProj : ModProjectile
     {
-        protected string name;
-        protected string type;
-		protected Action<Projectile> projAction;
-		protected ValueTuple<int, float, Vector2> values;
+        protected ChaoFeatureContext context;
+        protected ChaoFeature feature;
 
-		public override string Name => name;
-		public override string Texture
-		{
-			get
-			{
-				// Hella confusing unreadable code letsgo!
-				string path = $"ChaoGardenMod/Assets/Chaos/{name.Replace($"{type} ", "")}/{(type != "" ? type : "Default")}";
-				if (ModContent.RequestIfExists<Texture2D>(path, out _)) // Check if texture exists...
-				{
-					return path;
-				}
-				// ... if not then give Unloaded Item texture
-				return $"ChaoGardenMod/Assets/UnloadedItem";
-			}
-		}
+        public override string Name => feature.GetName(); // the internal name...
+        public override string Texture
+        {
+            get
+            {
+                // Hella confusing unreadable code letsgo!
+                string subType = feature.GetSubType() == "" ? "" : $"{feature.GetSubType()}/";
+                string path = $"ChaoGardenMod/Assets/Chaos/{feature.GetName().Replace($"{feature.getType()} ", "")}/{subType}{(feature.getType() != "" ? feature.getType() : "Default")}";
+                if (ModContent.RequestIfExists<Texture2D>(path, out _)) // Check if texture exists...
+                {
+                    return path;
+                }
+                // ... if not then give Unloaded Item texture
+                return $"ChaoGardenMod/Assets/UnloadedItem";
+            }
+        }
 
         public override bool CloneNewInstances => true;
 
-		public ChaoProj(ValueTuple<int, float, Vector2> values,  string name, string type, Action<Projectile> projAction)
+		public ChaoProj(ChaoFeatureContext featureContext)
         {
-            this.name = name;
-            this.type = type;
-			this.projAction = projAction;
-			this.values = values;
+            context = featureContext;
+            feature = context.GetFeature();
+
+            if (!feature.getType().Contains(' '))
+            {
+                feature.SetType(Regex.Replace(feature.getType(), "([A-Z])", " $1").Trim());
+            }
         }
 
         public override bool IsLoadingEnabled(Mod mod) => true;
 
         public override void SetStaticDefaults()
         {
-            DisplayName.SetDefault(name);
+            DisplayName.SetDefault(feature.GetName());
             Main.projFrames[Projectile.type] = 4;
             Main.projPet[Projectile.type] = true;
         }
@@ -53,9 +56,9 @@ namespace ChaoGardenMod.Core
         {
             Projectile.CloneDefaults(380);
             AIType = 380;
-            Projectile.width = (int)values.Item3.X;
-            Projectile.height = (int)values.Item3.Y;
-            Projectile.scale = values.Item2;
+            Projectile.width = (int)feature.GetSize().X;
+            Projectile.height = (int)feature.GetSize().Y;
+            Projectile.scale = feature.GetScale();
         }
 
         public override bool PreAI()
@@ -84,13 +87,13 @@ namespace ChaoGardenMod.Core
             int num = 1;
             if (!player.DeadOrGhost)
             {
-                modPlayer.currentChao = name;
+                modPlayer.currentChao = feature.GetName();
             }
-            if (modPlayer.currentChao == name)
+            if (modPlayer.currentChao == feature.GetName())
             {
                 Projectile.timeLeft = 2;
             }
-            else
+            else if (player.DeadOrGhost || modPlayer.currentChao != feature.GetName())
             {
                 Projectile.Kill();
             }
@@ -123,7 +126,10 @@ namespace ChaoGardenMod.Core
                 projectile.velocity *= (float)Math.Pow(0.9, 1.0);
             }
             double num3 = (double)Math.Abs(Projectile.velocity.X);
-            projAction.Invoke(Projectile);
+            if (feature.GetProjAction() != null)
+            {
+                feature.GetProjAction().Invoke(Projectile);
+            }
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Terraria;
 using Terraria.ID;
@@ -11,22 +13,17 @@ namespace ChaoGardenMod.Core
     [Autoload(false)]
     public class ChaoEgg : ModItem
     {
-        protected string name;
-        protected string type;
-        protected string tooltip;
-        protected string buffTooltip;
-        protected ChaoType chaoType;
-        protected Action<Projectile> projAction;
-        protected Action<string, Player, int> buffAction;
-        protected ValueTuple<int, float, Vector2> values; // RARITY | SCALE | SIZE
+        protected ChaoFeatureContext context;
+        protected ChaoFeature feature;
 
-        public override string Name => name; // the internal name...
+        public override string Name => feature.GetName(); // the internal name...
         public override string Texture
         {
             get
             {
                 // Hella confusing unreadable code letsgo!
-                string path = $"ChaoGardenMod/Assets/Eggs/{name.Replace($"{type} ", "")}/{(type != "" ? type : "Default")}";
+                string subType = feature.GetSubType() == "" ? "" : $"{feature.GetSubType()}/";
+                string path = $"ChaoGardenMod/Assets/Eggs/{feature.GetName().Replace($"{feature.getType()} ", "")}/{subType}{(feature.getType() != "" ? feature.getType() : "Default")}";
                 if (ModContent.RequestIfExists<Texture2D>(path, out _)) // Check if texture exists...
                 {
                     return path;
@@ -36,49 +33,32 @@ namespace ChaoGardenMod.Core
             }
         }
 
-        public ChaoEgg(ValueTuple<int, float, Vector2> values, string name, string type, string tooltip, string buffTooltip, ChaoType chaoType, Action<Projectile> projAction, Action<string, Player, int> buffAction)
+        public ChaoEgg(ChaoFeatureContext featureContext)
         {
-            this.name = name;
-            this.type = type;
-            this.tooltip = tooltip;
-            this.buffTooltip = buffTooltip;
-            this.chaoType = chaoType;
-            this.projAction = projAction;
-            this.buffAction = buffAction;
-            this.values = values;
+            context = featureContext;
+            feature = context.GetFeature();
+
+            if (!feature.getType().Contains(' '))
+            {
+                feature.SetType(Regex.Replace(feature.getType(), "([A-Z])", " $1").Trim());
+            }
         }
 
         public override void SetStaticDefaults()
         {
-            string tooltip = this.tooltip;
+            string tooltip = feature.GetTooltip().Invoke(feature.GetName());
             string uniqueSub = "\nThis is a";
-            if (chaoType.HasFlag(ChaoType.Rare))
+            foreach (KeyValuePair<ChaoType, string> entry in ChaoGardenMod.chaoTypePairs)
             {
-                uniqueSub += " [c/c765f6:Rare]";
-            }
-            if (chaoType.HasFlag(ChaoType.Unique))
-            {
-                uniqueSub += " [c/fafd20:Unique]";
-            }
-            if (chaoType.HasFlag(ChaoType.Support))
-            {
-                uniqueSub += " [c/b61239:Support]";
-            }
-            if (chaoType.HasFlag(ChaoType.Harvester))
-            {
-                uniqueSub += " [c/be7327:Harvester]";
+                if (feature.GetChaoType().HasFlag(entry.Key))
+                {
+                    uniqueSub += $" {entry.Value}";
+                }
             }
             uniqueSub += " Chao!";
 
-            DisplayName.SetDefault(name + " Chao");
+            DisplayName.SetDefault(feature.GetName() + " Chao");
             Tooltip.SetDefault(tooltip + uniqueSub);
-        }
-
-        public override bool IsLoadingEnabled(Mod mod)
-        {
-            mod.AddContent(new ChaoBuff(name, type, buffTooltip, buffAction));
-            mod.AddContent(new ChaoProj(values, name, type, projAction));
-            return true;
         }
 
         public override void SetDefaults()
@@ -89,9 +69,9 @@ namespace ChaoGardenMod.Core
             Item.useStyle = ItemUseStyleID.HoldUp;
             Item.useAnimation = 1;
             Item.UseSound = SoundID.Item1;
-            Item.shoot = Mod.Find<ModProjectile>(name).Type;
-            Item.buffType = Mod.Find<ModBuff>(name).Type;
-            Item.rare = values.Item1;
+            Item.shoot = Mod.Find<ModProjectile>(feature.GetName()).Type;
+            Item.buffType = Mod.Find<ModBuff>(feature.GetName()).Type;
+            Item.rare = feature.GetRarity();
             Item.noMelee = true;
             Item.accessory = true;
         }

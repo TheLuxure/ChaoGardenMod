@@ -1,6 +1,8 @@
 using ChaoGardenMod.Core;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -8,8 +10,15 @@ namespace ChaoGardenMod
 {
     public class ChaoGardenMod : Mod
 	{
+		public static Dictionary<ChaoType, string> chaoTypePairs = new();
+
 		public override void Load()
 		{
+			chaoTypePairs.Add(ChaoType.Rare, "[c/c765f6:Rare]");
+			chaoTypePairs.Add(ChaoType.Unique, "[c/fafd20:Unique]");
+			chaoTypePairs.Add(ChaoType.Support, "[c/b61239:Support]");
+			chaoTypePairs.Add(ChaoType.Harvester, "[c/be7327:Harvester]");
+
 			#region Default
 			{
 				string[] types = new string[24]
@@ -42,40 +51,20 @@ namespace ChaoGardenMod
 
 				for (int i = 0; i < types.Length; i++)
 				{
-					register(
-						// Egg item rarity, Projectile chao scale, and size...
-						new ValueTuple<int, float, Vector2>(0, 1.1F, new Vector2(32, 48)),
-						// Internal name and egg name...
-						$"{(types[i] != "" ? types[i] + " " : "")}Default",
-						// Chao type (from types var)
-						types[i],
-						// Egg description
-						$"Summons an adorable {types[i]} Chao!",
-						// Buff description
-						$"Boo!!!",
-						// Chao egg type
-						ChaoType.Unique | ChaoType.Support,
-						// Projection! (projectile EXTRA ai; leave empty if you don't want changes to it)
-						new Action<Projectile>((projectile) =>
-						{
-							// Modifying proj ai goes here!
-						}),
-						// Buff action
-						new Action<string, Player, int>((summon, player, buffIndex) =>
+					register(new ChaoFeature()
+						.SetName($"{(types[i] != "" ? types[i] + " " : "")}Default")
+						.SetType(types[i])
+						.SetRarity(0)
+						.SetScale(1.1f)
+						.SetSize(new Vector2(32f, 48f))
+						.SetTooltip((name) => $"Summons an adorable {name} Chao!")
+						.SetBuffTooltip((name) => $"Boo!!!")
+						.SetChaoType(ChaoType.Unique | ChaoType.Support)
+						.SetBuffAction(new Action<string, Player, int>((summon, player, buffIndex) =>
 						{
 							player.statLife = 1;
-							player.buffTime[buffIndex] = 999999;
-							player.GetModPlayer<ChaoPlayer>().currentChao = summon;
-							bool petProjectileNotSpawned = true;
-							if (player.ownedProjectileCounts[Find<ModProjectile>(summon).Type] > 0)
-							{
-								petProjectileNotSpawned = false;
-							}
-							if (petProjectileNotSpawned && player.whoAmI == Main.myPlayer)
-							{
-								Projectile.NewProjectile(player.GetProjectileSource_Buff(buffIndex), player.position.X + player.width / 2, player.position.Y + player.height / 2, 0f, 0f, Find<ModProjectile>(summon).Type, 0, 0f, player.whoAmI, 0f, 0f);
-							}
-						}));
+						}))
+						.Create());
 				}
 			}
 			#endregion
@@ -109,20 +98,19 @@ namespace ChaoGardenMod
 
 				for (int i = 0; i < types.Length; i++)
 				{
-					register(
-						new ValueTuple<int, float, Vector2>(8, 1.1F, new Vector2(32, 48)),
-						$"{(types[i] != "" ? types[i] + " " : "")}Axolotl",
-						types[i],
-						$"Summons an adorable {types[i]} Axolotl Chao to play with you and help you regenerate!",
-
-						$"Your adorable {types[i]} Axolotl Chao is swimming around you and granting you buffs!" +
+					register(new ChaoFeature()
+						.SetName($"{(types[i] != "" ? types[i] + " " : "")}Axolotl")
+						.SetType(types[i])
+						.SetRarity(8)
+						.SetScale(1.1f)
+						.SetSize(new Vector2(32f, 48f))
+						.SetTooltip((name) => $"Summons an adorable {name} Axolotl Chao to play with you and help you regenerate!")
+						.SetBuffTooltip((name) => $"Your adorable {name} Axolotl Chao is swimming around you and granting you buffs!" +
 					   "\nIncreases your Bait Power by 10% and grants you gills while in water" +
 					   "\nIncreases your Life Regen and Mana Regen by 10, doubled while in water" +
-					   "\nAxolotl Chao hate going into hot biomes and will start to dry out if they go there!",
-						ChaoType.Unique | ChaoType.Support,
-						new Action<Projectile>((projectile) => {
-						}),
-						new Action<string, Player, int>((summon, player, buffIndex) =>
+					   "\nAxolotl Chao hate going into hot biomes and will start to dry out if they go there!")
+						.SetChaoType(ChaoType.Unique | ChaoType.Support)
+						.SetBuffAction(new Action<string, Player, int>((summon, player, buffIndex) =>
 						{
 							player.lifeRegen += 10;
 							player.manaRegen += 10;
@@ -140,19 +128,8 @@ namespace ChaoGardenMod
 								player.GetDamage(DamageClass.Generic) -= 0.1f;
 								player.moveSpeed -= 0.2f;
 							}
-							player.buffTime[buffIndex] = 999999;
-							player.GetModPlayer<ChaoPlayer>().currentChao = summon;
-							bool petProjectileNotSpawned = true;
-							if (player.ownedProjectileCounts[Find<ModProjectile>(summon).Type] > 0)
-							{
-								petProjectileNotSpawned = false;
-							}
-							if (petProjectileNotSpawned && player.whoAmI == Main.myPlayer)
-							{
-								Projectile.NewProjectile(player.GetProjectileSource_Buff(buffIndex), player.position.X + player.width / 2, player.position.Y + player.height / 2, 0f, 0f, Find<ModProjectile>(summon).Type, 0, 0f, player.whoAmI, 0f, 0f);
-							}
-						})
-						);
+						}))
+						.Create());
 				}
 			}
             #endregion
@@ -165,14 +142,17 @@ namespace ChaoGardenMod
 		/// </summary>
 		public void SingularRegisters()
 		{
-			register(new ValueTuple<int, float, Vector2>(6, 1.1F, new Vector2(32F, 48F)),
-				"Iron",
-				"Iron",
-				"Summons an Iron Chao to follow you around and gather Iron Bars for you!",
-				"Your Iron Chao is following you around and gathering Iron Bars for you!" +
-				"\nIncreases your Life, Mana and Defense Regeneration by 4",
-				ChaoType.Rare | ChaoType.Support | ChaoType.Harvester,
-				new Action<Projectile>((projectile) =>
+			register(new ChaoFeature()
+				.SetName("Iron")
+				.SetType("Iron")
+				.SetRarity(6)
+				.SetScale(1.1f)
+				.SetSize(new Vector2(32f, 48f))
+				.SetTooltip((name) => "Summons an Iron Chao to follow you around and gather Iron Bars for you!")
+				.SetBuffTooltip((name) => "Your Iron Chao is following you around and gathering Iron Bars for you!" +
+				"\nIncreases your Life, Mana and Defense Regeneration by 4")
+				.SetChaoType(ChaoType.Rare | ChaoType.Support | ChaoType.Harvester)
+				.SetProjAction((projectile) =>
 				{
 					Player player = Main.player[projectile.owner];
 
@@ -185,45 +165,22 @@ namespace ChaoGardenMod
 						}
 						projectile.localAI[0]++;
 					}
-				}),
-				new Action<string, Player, int>((summon, player, buffIndex) =>
+				})
+				.SetBuffAction(new Action<string, Player, int>((summon, player, buffIndex) =>
 				{
 					player.lifeRegen += 4;
 					player.manaRegen += 4;
 					player.statDefense += 4;
-					player.buffTime[buffIndex] = 999999;
-					player.GetModPlayer<ChaoPlayer>().currentChao = summon;
-					bool petProjectileNotSpawned = true;
-					if (player.ownedProjectileCounts[Find<ModProjectile>(summon).Type] > 0)
-					{
-						petProjectileNotSpawned = false;
-					}
-					if (petProjectileNotSpawned && player.whoAmI == Main.myPlayer)
-					{
-						Projectile.NewProjectile(player.GetProjectileSource_Buff(buffIndex), player.position.X + player.width / 2, player.position.Y + player.height / 2, 0f, 0f, Find<ModProjectile>(summon).Type, 0, 0f, player.whoAmI, 0f, 0f);
-					}
-				})
-				);
+				}))
+				.Create());
 		}
 
-		private bool register(ValueTuple<int, float, Vector2> values,
-                        string name,
-                        string type,
-                        string tooltip,
-                        string buffTooltip,
-                        ChaoType chao,
-                        Action<Projectile> projAction,
-						Action<string, Player, int> buffAction)
+		private bool register(ChaoFeatureContext feature)
         {
 			bool success = true;
-			try
-			{
-				AddContent(new ChaoEgg(values, name, type, tooltip, buffTooltip, chao, projAction, buffAction));
-			}
-			catch
-            {
-				success = false;
-            }
+			AddContent(new ChaoEgg(feature));
+			AddContent(new ChaoProj(feature));
+			AddContent(new ChaoBuff(feature));
 			return success;
         }
     }
