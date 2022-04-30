@@ -46,7 +46,7 @@ namespace ChaoGardenMod.Core
 
         public override void SetStaticDefaults()
         {
-            string tooltip = feature.GetTooltip().Invoke(feature.GetName());
+            string tooltip = feature.GetTooltip().Invoke(feature.getType());
             string uniqueSub = "\nThis is a";
             foreach (KeyValuePair<ChaoType, string> entry in ChaoGardenMod.chaoTypePairs)
             {

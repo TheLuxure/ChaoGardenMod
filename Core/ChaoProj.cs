@@ -12,6 +12,7 @@ namespace ChaoGardenMod.Core
     {
         protected ChaoFeatureContext context;
         protected ChaoFeature feature;
+        private bool tick;
 
         public override string Name => feature.GetName(); // the internal name...
         public override string Texture
@@ -85,15 +86,16 @@ namespace ChaoGardenMod.Core
             Projectile.ai[1] = 3600f;
             Projectile.netUpdate = true;
             int num = 1;
-            if (!player.DeadOrGhost)
+            if (!tick)
             {
                 modPlayer.currentChao = feature.GetName();
+                tick = true;
             }
             if (modPlayer.currentChao == feature.GetName())
             {
                 Projectile.timeLeft = 2;
             }
-            else if (player.DeadOrGhost || modPlayer.currentChao != feature.GetName())
+            if (player.DeadOrGhost || modPlayer.currentChao != feature.GetName())
             {
                 Projectile.Kill();
             }

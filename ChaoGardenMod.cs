@@ -4,13 +4,21 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace ChaoGardenMod
 {
     public class ChaoGardenMod : Mod
 	{
+		public static ChaoGardenMod Instance;
 		public static Dictionary<ChaoType, string> chaoTypePairs = new();
+		public static List<ModItem> GetModItems = new();
+
+		public ChaoGardenMod()
+        {
+			Instance = this;
+        }
 
 		public override void Load()
 		{
@@ -137,45 +145,56 @@ namespace ChaoGardenMod
 			SingularRegisters();
         }
 
-		/// <summary>
-		/// Put single-type chaos here!
-		/// </summary>
-		public void SingularRegisters()
-		{
-			register(new ChaoFeature()
-				.SetName("Iron")
-				.SetType("Iron")
-				.SetRarity(6)
-				.SetScale(1.1f)
-				.SetSize(new Vector2(32f, 48f))
-				.SetTooltip((name) => "Summons an Iron Chao to follow you around and gather Iron Bars for you!")
-				.SetBuffTooltip((name) => "Your Iron Chao is following you around and gathering Iron Bars for you!" +
-				"\nIncreases your Life, Mana and Defense Regeneration by 4")
-				.SetChaoType(ChaoType.Rare | ChaoType.Support | ChaoType.Harvester)
-				.SetProjAction((projectile) =>
-				{
-					Player player = Main.player[projectile.owner];
+        /// <summary>
+        /// Put single-type chaos here!
+        /// </summary>
+        public void SingularRegisters()
+        {
+            register(new ChaoFeature()
+                .SetName("Iron")
+                .SetType("Iron")
+                .SetRarity(6)
+                .SetScale(1.1f)
+                .SetSize(new Vector2(32f, 48f))
+                .SetTooltip((name) => "Summons an Iron Chao to follow you around and gather Iron Bars for you!")
+                .SetBuffTooltip((name) => "Your Iron Chao is following you around and gathering Iron Bars for you!" +
+                "\nIncreases your Life, Mana and Defense Regeneration by 4")
+                .SetChaoType(ChaoType.Rare | ChaoType.Support | ChaoType.Harvester)
+                .SetProjAction((projectile) =>
+                {
+                    Player player = Main.player[projectile.owner];
 
-					if (!((double)Math.Abs(projectile.velocity.X) > 0.2))
-					{
-						if (projectile.localAI[0] > 800)
-						{
-							Item.NewItem(player.GetProjectileSource_Item(Find<ModItem>("Iron").Item), (int)projectile.position.X, (int)projectile.position.Y, projectile.width, projectile.height, 22, Main.rand.Next(2), false, 0, false, false);
-							projectile.localAI[0] = 0;
-						}
-						projectile.localAI[0]++;
-					}
-				})
-				.SetBuffAction(new Action<string, Player, int>((summon, player, buffIndex) =>
-				{
-					player.lifeRegen += 4;
-					player.manaRegen += 4;
-					player.statDefense += 4;
-				}))
-				.Create());
-		}
+                    if (!((double)Math.Abs(projectile.velocity.X) > 0.2))
+                    {
+                        if (projectile.localAI[0] > 800)
+                        {
+                            Item.NewItem(player.GetProjectileSource_Item(Find<ModItem>("Iron").Item), (int)projectile.position.X, (int)projectile.position.Y, projectile.width, projectile.height, 22, Main.rand.Next(2), false, 0, false, false);
+                            projectile.localAI[0] = 0;
+                        }
+                        projectile.localAI[0]++;
+                    }
+                })
+                .SetBuffAction(new Action<string, Player, int>((summon, player, buffIndex) =>
+                {
+                    player.lifeRegen += 4;
+                    player.manaRegen += 4;
+                    player.statDefense += 4;
+                }))
+                .Create());
+        }
 
-		private bool register(ChaoFeatureContext feature)
+        public override void PostAddRecipes()
+        {
+			foreach (KeyValuePair<int, Item> pair in ContentSamples.ItemsByType)
+            {
+				if (pair.Value.ModItem.Mod == this)
+                {
+					GetModItems.Add(pair.Value.ModItem);
+                }
+            }
+        }
+
+        private bool register(ChaoFeatureContext feature)
         {
 			bool success = true;
 			AddContent(new ChaoEgg(feature));

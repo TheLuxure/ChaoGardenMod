@@ -60,13 +60,13 @@ namespace ChaoGardenMod.Core
             player.buffTime[buffIndex] = 999999;
             player.GetModPlayer<ChaoPlayer>().currentChao = feature.GetName();
             bool petProjectileNotSpawned = true;
-            if (player.ownedProjectileCounts[ModContent.Find<ModProjectile>(feature.GetName()).Type] > 0)
+            if (player.ownedProjectileCounts[ModContent.Find<ModProjectile>("ChaoGardenMod", feature.GetName()).Type] > 0)
             {
                 petProjectileNotSpawned = false;
             }
             if (petProjectileNotSpawned && player.whoAmI == Main.myPlayer)
             {
-                Projectile.NewProjectile(player.GetProjectileSource_Buff(buffIndex), player.position.X + player.width / 2, player.position.Y + player.height / 2, 0f, 0f, ModContent.Find<ModProjectile>(feature.GetName()).Type, 0, 0f, player.whoAmI, 0f, 0f);
+                Projectile.NewProjectile(player.GetProjectileSource_Buff(buffIndex), player.position.X + player.width / 2, player.position.Y + player.height / 2, 0f, 0f, ModContent.Find<ModProjectile>("ChaoGardenMod", feature.GetName()).Type, 0, 0f, player.whoAmI, 0f, 0f);
             }
         }
     }
